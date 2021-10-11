@@ -1,0 +1,8 @@
+block {
+    testInt = 1
+    testBlock {
+        testBool = y
+        testDouble = 0.1
+    }
+}
+testString = "string"
