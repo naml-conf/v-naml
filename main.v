@@ -12,7 +12,7 @@ fn main() {
 	for line in lines {
 
 		//TODO make it find the correct type
-		token_list << Token{Tokens.key, line}
+		token_list << TokenString{Tokens.text, line}
 	}
 
 	for token in token_list {
@@ -21,18 +21,43 @@ fn main() {
 }
 
 enum Tokens {
-    text
-	block_open
-	block_close
-	integer
-	double
-	bool_true
-	bool_false
-	key
-	equals
+    text		// ""
+	block_open	// {
+	block_close	// }
+	integer		// i32
+	double		// f64
+	bool_true	// y
+	bool_false	// n
+	key			// name of a value
+	equals		// an equals sign
 }
 
-struct Token {
-	token_type Tokens
-	value string
+interface Token {
+	token_type	Tokens
+	value		any
+}
+
+struct TokenString {
+	token_type	Tokens
+	value 		string
+}
+
+struct TokenDouble {
+	token_type	Tokens
+	value 		f64
+}
+
+struct TokenInt {
+	token_type	Tokens
+	value 		int
+}
+
+struct TokenBool {
+	token_type	Tokens
+	value 		bool
+}
+
+struct TokenBlock {
+	token_type	Tokens
+	value		[]Token
 }
