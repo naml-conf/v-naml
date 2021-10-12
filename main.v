@@ -1,8 +1,9 @@
 //module naml
 
 import os 
+import time
 
-fn main() {
+pub fn main() {
 
 	mut token_list := []Token{}
 
@@ -11,8 +12,10 @@ fn main() {
 		return
 	}
 
+	sw := time.new_stopwatch()
+	mut index := u16(0)
 	for line in lines {
-		//TODO make it find the correct type
+		index++
 		match true {
 			line.contains('{') {
 				a, b := chop_up_block_open(line)
@@ -30,39 +33,55 @@ fn main() {
 			line.contains('=') {
 				a, b := chop_up(line)
 				c := a.trim(' ')
-				token_list << Token{ Tokens.key, c}
-
+				token_list << Token{ Tokens.key, c }
+				trimmed_line := line.trim(' ')
 				match true {
 					b.contains('.') {
+						if b.count('.') == 1 {
 						token_list << Token{ Tokens.double, b }
+						} else {
+							panic("Extra . in double\nAt line $index: $trimmed_line")
+						}
 					}
 
-					b.contains('y') {
-						token_list << Token{ Tokens.bool_true, b }
+					b.contains('y') && b.count('y') == 1{
+						token_list << Token{ Tokens.bool_true, b }1
 					}
 
-					b.contains('n') {
+					b.contains('n') && b.count('n') == 1 {
 						token_list << Token{ Tokens.bool_false, b }
 					}
 
 					b.contains('"') {
+						if b.count('"') == 2 {
 						token_list << Token{ Tokens.text, b }
+						} else {
+							panic('Missing double quote in string\nAt line $index: $trimmed_line')
+						}
 					}
 
 					b.contains_any('1234567890') {
 						token_list << Token{ Tokens.integer, b}
 					}
 
-					else { panic('Wrong value!') }
+					else {
+						panic('Wrong value formatting encountered at\nAt line $index: $trimmed_line\n Please check if the value is correct') 
+					}
 				}
 			}
-			else { panic('Parse error!') }
+
+			else { 
+				trimmed_line := line.trim(' ')
+				panic('Parse error while parsing\nAt line $index: $trimmed_line') 
+			}
 		}
 	}
 
 	for token in token_list {
 		println(token.str())
 	}
+
+	println('Tokenized in ${sw.elapsed().nanoseconds()}ns')
 }
 
 enum Tokens {
