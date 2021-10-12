@@ -13,7 +13,10 @@ pub fn main() {
 	}
 
 	sw := time.new_stopwatch()
+
+	//to keep track of which line we're on in case of error
 	mut index := u16(0)
+
 	for line in lines {
 		index++
 		match true {
@@ -38,23 +41,23 @@ pub fn main() {
 				match true {
 					b.contains('.') {
 						if b.count('.') == 1 {
-						token_list << Token{ Tokens.double, b }
+							token_list << Token{ Tokens.double, b }
 						} else {
-							panic("Extra . in double\nAt line $index: $trimmed_line")
+							panic("Extra . in double.\nAt line $index: $trimmed_line")
 						}
 					}
 
-					b.contains('y') && b.count('y') == 1{
-						token_list << Token{ Tokens.bool_true, b }1
-					}
-
-					b.contains('n') && b.count('n') == 1 {
-						token_list << Token{ Tokens.bool_false, b }
+					b.contains('y') {
+						if b.len == 1 {
+							token_list << Token{ Tokens.bool_true, b }
+						} else {
+							panic("More than one character found when a boolean was expected (y|n)\nAt line $index: $trimmed_line")
+						}
 					}
 
 					b.contains('"') {
 						if b.count('"') == 2 {
-						token_list << Token{ Tokens.text, b }
+							token_list << Token{ Tokens.text, b }
 						} else {
 							panic('Missing double quote in string\nAt line $index: $trimmed_line')
 						}
@@ -62,6 +65,14 @@ pub fn main() {
 
 					b.contains_any('1234567890') {
 						token_list << Token{ Tokens.integer, b}
+					}
+
+					b.contains('n') {
+						if b.len == 1 {
+							token_list << Token{ Tokens.bool_false, b }
+						} else {
+							panic("More than one character found when a boolean was expected (y|n)\nAt line $index: $trimmed_line")
+						}
 					}
 
 					else {
@@ -72,16 +83,20 @@ pub fn main() {
 
 			else { 
 				trimmed_line := line.trim(' ')
-				panic('Parse error while parsing\nAt line $index: $trimmed_line') 
+				panic('Missing block open/close or value declaration\nAt line $index: $trimmed_line') 
 			}
 		}
 	}
 
-	for token in token_list {
-		println(token.str())
-	}
+	println('Tokenized in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
 
-	println('Tokenized in ${sw.elapsed().nanoseconds()}ns')
+	mut token_map := map[string]TokenValue
+	// token_map['h'] = TokenValue(map[string]TokenValue)
+	// dump(token_map['h']) or {
+	// 	panic('bad')
+	// }
+
+	println('Mapped in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
 }
 
 enum Tokens {
@@ -95,6 +110,8 @@ enum Tokens {
 	key			// name of a value
 	equals		// an equals sign
 }
+
+type TokenValue = bool | string | int | f64 | map[string]TokenValue
 
 struct Token {
 	token_type	Tokens
