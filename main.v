@@ -90,11 +90,10 @@ pub fn main() {
 
 	println('Tokenized in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
 
-	mut token_map := map[string]TokenValue
-	// token_map['h'] = TokenValue(map[string]TokenValue)
-	// dump(token_map['h']) or {
-	// 	panic('bad')
-	// }
+	mut token_map := map[string]TokenValue{}
+	token_map['h'] = TokenValue(TokenMap{})
+	nested_map := token_map['h'] or { panic('bad') }
+	nested_map['h'] = 'h'
 
 	println('Mapped in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
 }
@@ -111,7 +110,8 @@ enum Tokens {
 	equals		// an equals sign
 }
 
-type TokenValue = bool | string | int | f64 | map[string]TokenValue
+type TokenValue = bool | string | int | f64 | TokenMap
+type TokenMap = map[string]TokenValue
 
 struct Token {
 	token_type	Tokens
