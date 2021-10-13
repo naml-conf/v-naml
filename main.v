@@ -13,17 +13,16 @@ pub fn main() {
 	}
 
 	//for i in 0 .. 5 {
-		tokenize(lines, mut token_list)
+	tokenize(lines, mut token_list)
 	//	println(i)
 	//}
 
 	blub := parse(mut token_list)
 
 	for b in blub {
-		println(b.content)
+		println(b.name +', '+ b.content.str())
 	}
-	
-	//println('Mapped in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
+
 }
 
 enum Tokens {
@@ -57,7 +56,7 @@ struct Token {
 type NamlData = string | bool | int | f64 | Block
 
 struct NamlNode{
-	//name		string
+	name		string
 	content		NamlData
 	value		DataType
 }
@@ -165,6 +164,8 @@ fn tokenize(lines []string, mut token_list []Token) {
 [inline]
 fn parse(mut token_list []Token) []&NamlNode {
 
+	sw := time.new_stopwatch()
+
 	mut naml_list :=  []&NamlNode{}
 
 	for i, token in token_list {
@@ -172,39 +173,41 @@ fn parse(mut token_list []Token) []&NamlNode {
 		match typ {
 
 			.integer {
-				naml_list << &NamlNode{ token.value, DataType.int }
+				naml_list << &NamlNode{ token_list[i-1].value, token.value.int(), DataType.int }
 			}
 
 			.text {
-				naml_list << &NamlNode{ token.value, DataType.string }
+				naml_list << &NamlNode{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string }
 			}
 			
 			.block_open {
-				naml_list << &NamlNode{ Block{}, DataType.block }
+				naml_list << &NamlNode{ token_list[i-1].value, Block{}, DataType.block }
 			}
 
 			.double {
-				naml_list << &NamlNode{ token.value, DataType.f64 }
+				naml_list << &NamlNode{ token_list[i-1].value, token.value.f64(), DataType.f64 }
 			}
 
 			.bool_false {
-				naml_list << &NamlNode{ false, DataType.bool }
+				naml_list << &NamlNode{ token_list[i-1].value, false, DataType.bool }
 			}
 
 			.bool_true {
-				naml_list << &NamlNode{ true, DataType.bool }
-			}
-
-			.key {
-				naml_list << &NamlNode { token.value}
+				naml_list << &NamlNode{ token_list[i-1].value, true, DataType.bool }
 			}
 
 			else {
-				println('h')
+				do_nothing()
 			}
 		}
 	}
 
+	println('Mapped in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
+
 	return naml_list
+
+}
+
+fn do_nothing() {
 
 }
