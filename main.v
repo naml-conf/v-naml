@@ -168,44 +168,41 @@ fn parse(mut token_list []Token) {
 	sw := time.new_stopwatch()
 
 	mut root_node :=  Block{}
-	//mut current_node := 
-	mut depth_index := 0
+	mut nodes := []Block{}
+	nodes << root_node
+	mut current_node := nodes.last()
 
 	for i, token in token_list {
-		typ := token.token_type
 
-		if depth_index > 0 {
-			
-		}
-
-		match typ {
+		match token.token_type {
 
 			.integer {
-				root_node.add_child(&NamlNode{ token_list[i-1].value, token.value.int(), DataType.int })
+				current_node.add_child(&NamlNode{ token_list[i-1].value, token.value.int(), DataType.int })
 			}
 
 			.text {
-				root_node.add_child(&NamlNode{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string })
+				current_node.add_child(&NamlNode{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string })
 			}
 			
 			.block_open {
-				root_node.add_child(&NamlNode{ token_list[i-1].value, Block{}, DataType.block })
+				new_node := &NamlNode{ token_list[i-1].value, Block{}, DataType.block }
+				current_node.add_child(new_node)
 			}
 
 			.double {
-				root_node.add_child(&NamlNode{ token_list[i-1].value, token.value.f64(), DataType.f64 })
+				current_node.add_child(&NamlNode{ token_list[i-1].value, token.value.f64(), DataType.f64 })
 			}
 
 			.bool_false {
-				root_node.add_child(&NamlNode{ token_list[i-1].value, false, DataType.bool })
+				current_node.add_child(&NamlNode{ token_list[i-1].value, false, DataType.bool })
 			}
 
 			.bool_true {
-				root_node.add_child(&NamlNode{ token_list[i-1].value, true, DataType.bool })
+				current_node.add_child(&NamlNode{ token_list[i-1].value, true, DataType.bool })
 			}
 
 			.block_close {
-
+				nodes.delete_last()
 			}
 
 			else {
