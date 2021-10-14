@@ -17,11 +17,11 @@ pub fn main() {
 	//	println(i)
 	//}
 
-	blub := parse(mut token_list)
+	parse(mut token_list)
 
-	for b in blub {
-		println(b.name +', '+ b.content.str())
-	}
+	// for b in blub {
+	// 	println(b.name +', '+ b.content.str())
+	// }
 
 }
 
@@ -45,7 +45,8 @@ enum DataType{
 }
 
 struct Block {
-	block []NamlNode
+mut:
+	block []&NamlNode
 }
 
 struct Token {
@@ -162,38 +163,49 @@ fn tokenize(lines []string, mut token_list []Token) {
 }
 
 [inline]
-fn parse(mut token_list []Token) []&NamlNode {
+fn parse(mut token_list []Token) {
 
 	sw := time.new_stopwatch()
 
-	mut naml_list :=  []&NamlNode{}
+	mut root_node :=  Block{}
+	//mut current_node := 
+	mut depth_index := 0
 
 	for i, token in token_list {
 		typ := token.token_type
+
+		if depth_index > 0 {
+			
+		}
+
 		match typ {
 
 			.integer {
-				naml_list << &NamlNode{ token_list[i-1].value, token.value.int(), DataType.int }
+				root_node.add_child(&NamlNode{ token_list[i-1].value, token.value.int(), DataType.int })
 			}
 
 			.text {
-				naml_list << &NamlNode{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string }
+				root_node.add_child(&NamlNode{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string })
 			}
 			
 			.block_open {
-				naml_list << &NamlNode{ token_list[i-1].value, Block{}, DataType.block }
+				root_node.add_child(&NamlNode{ token_list[i-1].value, Block{}, DataType.block })
 			}
 
 			.double {
-				naml_list << &NamlNode{ token_list[i-1].value, token.value.f64(), DataType.f64 }
+				root_node.add_child(&NamlNode{ token_list[i-1].value, token.value.f64(), DataType.f64 })
 			}
 
 			.bool_false {
-				naml_list << &NamlNode{ token_list[i-1].value, false, DataType.bool }
+				root_node.add_child(&NamlNode{ token_list[i-1].value, false, DataType.bool })
 			}
 
 			.bool_true {
-				naml_list << &NamlNode{ token_list[i-1].value, true, DataType.bool }
+				root_node.add_child(&NamlNode{ token_list[i-1].value, true, DataType.bool })
+			}
+
+			.block_close {
+
 			}
 
 			else {
@@ -203,11 +215,12 @@ fn parse(mut token_list []Token) []&NamlNode {
 	}
 
 	println('Mapped in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
-
-	return naml_list
+	println(root_node.block)
 
 }
 
-fn do_nothing() {
+fn do_nothing() { }
 
+fn (mut b Block) add_child(n &NamlNode) {
+	b.block << n
 }
