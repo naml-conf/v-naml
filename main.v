@@ -45,8 +45,9 @@ enum DataType{
 }
 
 struct Block {
+	name	string
 mut:
-	block []&NamlNode
+	block	[]&NamlNode
 }
 
 struct Token {
@@ -166,13 +167,14 @@ fn tokenize(lines []string, mut token_list []Token) {
 fn parse(mut token_list []Token) {
 
 	sw := time.new_stopwatch()
-
-	mut root_node :=  Block{}
-	mut nodes := []Block{}
-	nodes << root_node
-	mut current_node := nodes.last()
+	
+	mut nodes := Block{}
+	mut root_node :=  &NamlNode{ 'root', Block{}, DataType.block }
+	nodes.block << root_node
 
 	for i, token in token_list {
+
+		mut current_node := nodes.last()
 
 		match token.token_type {
 
@@ -185,7 +187,8 @@ fn parse(mut token_list []Token) {
 			}
 			
 			.block_open {
-				new_node := &NamlNode{ token_list[i-1].value, Block{}, DataType.block }
+				new_node := &NamlNode{ token_list[i-1].value, Block{}, DataType.block}
+				nodes.block << new_node
 				current_node.add_child(new_node)
 			}
 
@@ -202,7 +205,7 @@ fn parse(mut token_list []Token) {
 			}
 
 			.block_close {
-				nodes.delete_last()
+				nodes.block.delete_last()
 			}
 
 			else {
@@ -212,7 +215,7 @@ fn parse(mut token_list []Token) {
 	}
 
 	println('Mapped in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
-	println(root_node.block)
+	println(root_node)
 
 }
 
