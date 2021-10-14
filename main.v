@@ -16,9 +16,9 @@ pub fn main() {
 	tokenize(lines, mut token_list)
 	//	println(i)
 	//}
-
-	parse(mut token_list)
-
+	unsafe {
+		parse(mut token_list)
+	}
 	// for b in blub {
 	// 	println(b.name +', '+ b.content.str())
 	// }
@@ -163,49 +163,53 @@ fn tokenize(lines []string, mut token_list []Token) {
 	println('Tokenized in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
 }
 
+[unsafe]
 [inline]
 fn parse(mut token_list []Token) {
 
 	sw := time.new_stopwatch()
 	
-	mut nodes := Block{}
+	mut block_stack := []Block{}
+	mut node_stack := []&NamlNode{}
 	mut root_node :=  &NamlNode{ 'root', Block{}, DataType.block }
-	nodes.block << root_node
+	node_stack << root_node
 
 	for i, token in token_list {
 
-		mut current_node := nodes.last()
+		mut current_block := block_stack.last()
 
 		match token.token_type {
 
 			.integer {
-				current_node.add_child(&NamlNode{ token_list[i-1].value, token.value.int(), DataType.int })
+				current_block.add_child(&NamlNode{ token_list[i-1].value, token.value.int(), DataType.int })
 			}
 
 			.text {
-				current_node.add_child(&NamlNode{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string })
+				current_block.add_child(&NamlNode{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string })
 			}
 			
 			.block_open {
-				new_node := &NamlNode{ token_list[i-1].value, Block{}, DataType.block}
-				nodes.block << new_node
-				current_node.add_child(new_node)
+				new_node := Block{token_list[i-1].value, []&NamlNode{}}
+				block_stack << new_node
+				current_block.add_child(&NamlNode{ token_list[i-1].value, new_node, DataType.block })
 			}
 
 			.double {
-				current_node.add_child(&NamlNode{ token_list[i-1].value, token.value.f64(), DataType.f64 })
+				current_block.add_child(&NamlNode{ token_list[i-1].value, token.value.f64(), DataType.f64 })
 			}
 
 			.bool_false {
-				current_node.add_child(&NamlNode{ token_list[i-1].value, false, DataType.bool })
+				current_block.add_child(&NamlNode{ token_list[i-1].value, false, DataType.bool })
 			}
 
 			.bool_true {
-				current_node.add_child(&NamlNode{ token_list[i-1].value, true, DataType.bool })
+				current_block.add_child(&NamlNode{ token_list[i-1].value, true, DataType.bool })
 			}
 
 			.block_close {
-				nodes.block.delete_last()
+				if block_stack.len > 1 {
+					block_stack.pop()
+				}
 			}
 
 			else {
