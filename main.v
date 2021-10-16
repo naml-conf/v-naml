@@ -16,9 +16,7 @@ pub fn main() {
 	tokenize(lines, mut token_list)
 	//	println(i)
 	//}
-	unsafe {
-		parse(mut token_list)
-	}
+	parse(mut token_list)
 	// for b in blub {
 	// 	println(b.name +', '+ b.content.str())
 	// }
@@ -44,7 +42,7 @@ enum DataType{
 	block
 }
 
-struct Block {
+struct NamlBlock {
 	name	string
 mut:
 	block	[]&NamlNode
@@ -55,14 +53,15 @@ struct Token {
 	value 		string
 }
 
-type NamlData = string | bool | int | f64 | Block
+type NamlData = string | bool | int | f64
 
-struct NamlNode{
+struct NamlValue{
 	name		string
 	content		NamlData
 	value		DataType
 }
 
+type NamlNode = NamlValue | NamlBlock
 
 // this should only be used when we're sure there's a value being defined
 fn chop_up(s string) (string, string) {
@@ -163,16 +162,16 @@ fn tokenize(lines []string, mut token_list []Token) {
 	println('Tokenized in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
 }
 
-[unsafe]
 [inline]
 fn parse(mut token_list []Token) {
 
 	sw := time.new_stopwatch()
 	
-	mut block_stack := []Block{}
+	mut block_stack := []&NamlBlock{}
 	mut node_stack := []&NamlNode{}
-	mut root_node :=  &NamlNode{ 'root', Block{}, DataType.block }
+	mut root_node :=  &NamlBlock{ 'root', []&NamlNode{} }
 	node_stack << root_node
+	block_stack << root_node
 
 	for i, token in token_list {
 
@@ -181,50 +180,46 @@ fn parse(mut token_list []Token) {
 		match token.token_type {
 
 			.integer {
-				current_block.add_child(&NamlNode{ token_list[i-1].value, token.value.int(), DataType.int })
+				current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.int(), DataType.int })
 			}
 
 			.text {
-				current_block.add_child(&NamlNode{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string })
+				current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string })
 			}
 			
 			.block_open {
-				new_node := Block{token_list[i-1].value, []&NamlNode{}}
-				block_stack << new_node
-				current_block.add_child(&NamlNode{ token_list[i-1].value, new_node, DataType.block })
+				new_block := &NamlBlock{token_list[i-1].value, []&NamlNode{}}
+				block_stack << new_block
+				current_block.add_child(new_block)
 			}
 
 			.double {
-				current_block.add_child(&NamlNode{ token_list[i-1].value, token.value.f64(), DataType.f64 })
+				current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.f64(), DataType.f64 })
 			}
 
 			.bool_false {
-				current_block.add_child(&NamlNode{ token_list[i-1].value, false, DataType.bool })
+				current_block.add_child(&NamlValue{ token_list[i-1].value, false, DataType.bool })
 			}
 
 			.bool_true {
-				current_block.add_child(&NamlNode{ token_list[i-1].value, true, DataType.bool })
+				current_block.add_child(&NamlValue{ token_list[i-1].value, true, DataType.bool })
 			}
 
 			.block_close {
-				if block_stack.len > 1 {
-					block_stack.pop()
-				}
+				block_stack[block_stack.len-2].block << current_block
+				block_stack.pop()
 			}
 
-			else {
-				do_nothing()
+			.key {
+				continue
 			}
 		}
 	}
 
 	println('Mapped in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
-	println(root_node)
 
 }
 
-fn do_nothing() { }
-
-fn (mut b Block) add_child(n &NamlNode) {
+fn (mut b NamlBlock) add_child(n &NamlNode) {
 	b.block << n
 }
