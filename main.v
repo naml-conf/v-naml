@@ -1,25 +1,18 @@
-//module naml
+module naml
 
-import os 
-import time
+import os {read_lines}
 
-pub fn main() {
+pub fn naml(file_name string) &NamlBlock {
 
 	mut token_list := []Token{}
 
-	lines := os.read_lines('./test.naml') or {
-		panic('error reading file test.naml')
-		return
+	lines := os.read_lines(file_name) or {
+		panic('error reading file $file_name')
+		return &NamlBlock{'null', []&NamlNode{}}
 	}
 
-	//for i in 0 .. 5 {
 	tokenize(lines, mut token_list)
-	//	println(i)
-	//}
-	parse(mut token_list)
-	// for b in blub {
-	// 	println(b.name +', '+ b.content.str())
-	// }
+	return parse(mut token_list)
 
 }
 
@@ -84,7 +77,6 @@ fn (t Token) str() string {
 
 [inline]
 fn tokenize(lines []string, mut token_list []Token) {
-	sw := time.new_stopwatch()
 
 	//to keep track of which line we're on in case of error
 	mut index := u16(0)
@@ -158,14 +150,10 @@ fn tokenize(lines []string, mut token_list []Token) {
 			}
 		}
 	}
-
-	println('Tokenized in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
 }
 
 [inline]
-fn parse(mut token_list []Token) {
-
-	sw := time.new_stopwatch()
+fn parse(mut token_list []Token) &NamlBlock {
 	
 	mut block_stack := []&NamlBlock{}
 	mut node_stack := []&NamlNode{}
@@ -216,7 +204,7 @@ fn parse(mut token_list []Token) {
 		}
 	}
 
-	println('Mapped in ${f64(sw.elapsed().nanoseconds())/1000000.0}ms')
+	return root_node
 
 }
 
