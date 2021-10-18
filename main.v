@@ -5,7 +5,6 @@ import os {read_lines}
 pub fn naml(file_name string) &NamlBlock {
 
 	mut token_list := []Token{}
-
 	lines := os.read_lines(file_name) or {
 		panic('error reading file $file_name')
 		return &NamlBlock{'null', []&NamlNode{}}
@@ -178,7 +177,6 @@ fn parse(mut token_list []Token) &NamlBlock {
 			.block_open {
 				new_block := &NamlBlock{token_list[i-1].value, []&NamlNode{}}
 				block_stack << new_block
-				current_block.add_child(new_block)
 			}
 
 			.double {
