@@ -34,9 +34,10 @@ enum DataType{
 	block
 }
 
-struct NamlBlock {
+pub struct NamlBlock {
+pub:
 	name	string
-mut:
+pub mut:
 	block	[]&NamlNode
 }
 
@@ -45,15 +46,16 @@ struct Token {
 	value 		string
 }
 
-type NamlData = string | bool | int | f64
+pub type NamlData = string | bool | int | f64
 
-struct NamlValue{
+pub struct NamlValue{
+pub:
 	name		string
 	content		NamlData
 	value		DataType
 }
 
-type NamlNode = NamlValue | NamlBlock
+pub type NamlNode = NamlValue | NamlBlock
 
 // this should only be used when we're sure there's a value being defined
 fn chop_up(s string) (string, string) {
