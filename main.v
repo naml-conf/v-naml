@@ -4,210 +4,216 @@ import os {read_lines}
 
 pub fn naml(file_name string) &NamlBlock {
 
-	mut token_list := []Token{}
-	lines := os.read_lines(file_name) or {
-		panic('error reading file $file_name')
-		return &NamlBlock{'null', []&NamlNode{}}
-	}
+        mut token_list := []Token{}
+        lines := os.read_lines(file_name) or {
+                panic('error reading file $file_name')
+                return &NamlBlock{'null', []&NamlNode{}}
+        }
 
-	tokenize(lines, mut token_list)
-	return parse(mut token_list)
+        tokenize(lines, mut token_list)
+        return parse(mut token_list)
 
 }
 
 enum Tokens {
-    text		// ""
-	block_open	// {
-	block_close	// }
-	integer		// i32
-	double		// f64
-	bool_true	// y
-	bool_false	// n
-	key			// name of a value
+    text                // ""
+        block_open      // {
+        block_close     // }
+        integer         // i32
+        double          // f64
+        bool_true       // y
+        bool_false      // n
+        key                     // name of a value
 }
 
 enum DataType{
-	string
-	int
-	f64
-	bool
-	block
+        string
+        int
+        f64
+        bool
+        block
 }
 
 pub struct NamlBlock {
 pub:
-	name	string
+        name    string
 pub mut:
-	block	[]&NamlNode
+        block   []&NamlNode
 }
 
 struct Token {
-	token_type	Tokens
-	value 		string
+        token_type      Tokens
+        value           string
 }
 
 pub type NamlData = string | bool | int | f64
 
 pub struct NamlValue{
 pub:
-	name		string
-	content		NamlData
-	value		DataType
+        name            string
+        content         NamlData
+        value           DataType
 }
 
 pub type NamlNode = NamlValue | NamlBlock
 
 // this should only be used when we're sure there's a value being defined
 fn chop_up(s string) (string, string) {
-	return s.all_before(' ='), s.all_after('= ')
+        return s.all_before(' ='), s.all_after('= ')
 }
 
 // chops up a block opening
 fn chop_up_block_open(s string) (string, string) {
-	return s.all_before(' {'), s.all_after_last(' ')
+        return s.all_before(' {'), s.all_after_last(' ')
 }
 
 // chops up a block closing
 fn chop_up_block_close(s string) (string) {
-	return s
+        return s
 }
 
 fn (t Token) str() string {
-	return 'Token( type: $t.token_type, value: $t.value )'
+        return 'Token( type: $t.token_type, value: $t.value )'
 }
 
 [inline]
 fn tokenize(lines []string, mut token_list []Token) {
 
-	//to keep track of which line we're on in case of error
-	mut index := u16(0)
+        //to keep track of which line we're on in case of error
+        mut index := u16(0)
 
-	for line in lines {
-		index++
-		trimmed_line := line.trim(' ')
-		match true {
-			line.contains('{') {
-				a, b := chop_up_block_open(line)
-				c := a.trim(' ')
-				token_list << Token{ Tokens.key, c }
-				token_list << Token{ Tokens.block_open, b}
-			}
-			
-			line.contains('}') {
-				a := chop_up_block_close(line)
-				c := a.trim(' ')
-				token_list << Token{ Tokens.block_close, c }
-			}
+        for line in lines {
+                index++
+                trimmed_line := line.trim(' ')
+                match true {
+                        line.contains('{') {
+                                a, b := chop_up_block_open(line)
+                                c := a.trim(' ')
+                                token_list << Token{ Tokens.key, c }
+                                token_list << Token{ Tokens.block_open, b}
+                        }
 
-			line.contains('=') {
-				a, b := chop_up(line)
-				c := a.trim(' ')
-				token_list << Token{ Tokens.key, c }
-				match true {
-					b.contains('.') {
-						if b.count('.') == 1 {
-							token_list << Token{ Tokens.double, b }
-						} else {
-							panic("Extra . in double.\nAt line $index: $trimmed_line")
-						}
-					}
+                        line.contains('}') {
+                                a := chop_up_block_close(line)
+                                c := a.trim(' ')
+                                token_list << Token{ Tokens.block_close, c }
+                        }
 
-					b.contains('y') {
-						if b.len == 1 {
-							token_list << Token{ Tokens.bool_true, b }
-						} else {
-							panic("More than one character found when a boolean was expected (y|n)\nAt line $index: $trimmed_line")
-						}
-					}
+                        line.contains('=') {
+                                a, b := chop_up(line)
+                                c := a.trim(' ')
+                                token_list << Token{ Tokens.key, c }
+                                match true {
+                                        b.contains('.') {
+                                                if b.count('.') == 1 {
+                                                        token_list << Token{ Tokens.double, b }
+                                                } else {
+                                                        panic("Extra . in double.\nAt line $index: $trimmed_line")
+                                                }
+                                        }
 
-					b.contains('"') {
-						if b.count('"') == 2 {
-							token_list << Token{ Tokens.text, b }
-						} else {
-							panic('Missing double quote in string\nAt line $index: $trimmed_line')
-						}
-					}
+                                        b.contains('y') {
+                                                if b.len == 1 {
+                                                        token_list << Token{ Tokens.bool_true, b }
+                                                } else {
+                                                        panic("More than one character found when a boolean was expected (y|n)\nAt line $index: $trimmed_line")
+                                                }
+                                        }
 
-					b.contains_any('1234567890') {
-						token_list << Token{ Tokens.integer, b}
-					}
+                                        b.contains('"') {
+                                                if b.count('"') == 2 {
+                                                        token_list << Token{ Tokens.text, b }
+                                                } else {
+                                                        panic('Missing double quote in string\nAt line $index: $trimmed_line')
+                                                }
+                                        }
 
-					b.contains('n') {
-						if b.len == 1 {
-							token_list << Token{ Tokens.bool_false, b }
-						} else {
-							panic("More than one character found when a boolean was expected (y|n)\nAt line $index: $trimmed_line")
-						}
-					}
+                                        b.contains_any('1234567890') {
+                                                token_list << Token{ Tokens.integer, b}
+                                        }
 
-					else {
-						panic('Wrong value formatting encountered at\nAt line $index: $trimmed_line\n Please check if the value is correct') 
-					}
-				}
-			}
+                                        b.contains('n') {
+                                                if b.len == 1 {
+                                                        token_list << Token{ Tokens.bool_false, b }
+                                                } else {
+                                                        panic("More than one character found when a boolean was expected (y|n)\nAt line $index: $trimmed_line")
+                                                }
+                                        }
 
-			else { 
-				panic('Missing block open/close or value declaration\nAt line $index: $trimmed_line') 
-			}
-		}
-	}
+                                        else {
+                                                panic('Wrong value formatting encountered at\nAt line $index: $trimmed_line\n Please check if the value is correct')
+                                        }
+                                }
+                        }
+
+                        else {
+                                panic('Missing block open/close or value declaration\nAt line $index: $trimmed_line')
+                        }
+                }
+        }
 }
 
 [inline]
 fn parse(mut token_list []Token) &NamlBlock {
-	
-	mut block_stack := []&NamlBlock{}
-	mut node_stack := []&NamlNode{}
-	mut root_node :=  &NamlBlock{ 'root', []&NamlNode{} }
-	node_stack << root_node
-	block_stack << root_node
 
-	for i, token in token_list {
+        mut block_stack := []&NamlBlock{}
+        mut node_stack := []&NamlNode{}
+        mut root_node :=  &NamlBlock{ 'root', []&NamlNode{} }
+        node_stack << root_node
+        block_stack << root_node
 
-		mut current_block := block_stack.last()
+        for i, token in token_list {
 
-		match token.token_type {
+                mut current_block := block_stack.last()
 
-			.integer {
-				current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.int(), DataType.int })
-			}
+                match token.token_type {
 
-			.text {
-				current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string })
-			}
-			
-			.block_open {
-				new_block := &NamlBlock{token_list[i-1].value, []&NamlNode{}}
-				block_stack << new_block
-			}
+                        .integer {
+                                current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.int(), DataType.int }, token_list[i-1].value)
+                        }
 
-			.double {
-				current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.f64(), DataType.f64 })
-			}
+                        .text {
+                                current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.substr(1, token.value.len-1), DataType.string }, token_list[i-1].value)
+                        }
 
-			.bool_false {
-				current_block.add_child(&NamlValue{ token_list[i-1].value, false, DataType.bool })
-			}
+                        .block_open {
+                                new_block := &NamlBlock{token_list[i-1].value, []&NamlNode{}}
+                                block_stack << new_block
+                        }
 
-			.bool_true {
-				current_block.add_child(&NamlValue{ token_list[i-1].value, true, DataType.bool })
-			}
+                        .double {
+                                current_block.add_child(&NamlValue{ token_list[i-1].value, token.value.f64(), DataType.f64 }, token_list[i-1].value)
+                        }
 
-			.block_close {
-				block_stack[block_stack.len-2].block << current_block
-				block_stack.pop()
-			}
+                        .bool_false {
+                                current_block.add_child(&NamlValue{ token_list[i-1].value, false, DataType.bool }, token_list[i-1].value)
+                        }
 
-			.key {
-				continue
-			}
-		}
-	}
+                        .bool_true {
+                                current_block.add_child(&NamlValue{ token_list[i-1].value, true, DataType.bool }, token_list[i-1].value)
+                        }
 
-	return root_node
+                        .block_close {
+                                block_stack[block_stack.len-2].block << current_block
+                                block_stack.pop()
+                        }
+
+                        .key {
+                                continue
+                        }
+                }
+        }
+
+        return root_node
 
 }
 
-fn (mut b NamlBlock) add_child(n &NamlNode) {
-	b.block << n
+fn (mut b NamlBlock) add_child(n &NamlNode, name string) {
+	/* UNSAFE method */
+	/* mut new_node :=  &NamlBlock{  unsafe { n[0].name }, [n] } */
+
+	/* SAFE method */
+        mut new_node :=  &NamlBlock{ name, [n] }
+        b.block << new_node
+
 }
